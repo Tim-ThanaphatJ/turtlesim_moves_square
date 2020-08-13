@@ -12,11 +12,14 @@ turnCCW = False
 initPose = []
 currentPose = []
 
-turtleVelX = 0.5
-turtleAngZ = 0.25
+turtleVelX = 0.75
+turtleAngZ = 0.5
 
 squareDist = 2.0
-angleDegree = 90.0
+status = ""
+
+polygon = 4 #degree
+angleDegree = 360//polygon
 angleRadius = (angleDegree * 2 * np.pi)/360
 
 def poseReceived(position_data): #callback
@@ -33,7 +36,7 @@ def moveSquare():
     rate = rospy.Rate(20) # 20hz
 
     while not rospy.is_shutdown():
-        global initPose, turnCCW, is_init_pose
+        global initPose, turnCCW, is_init_pose, status
         if turnCCW == False:
             if is_init_pose == False:
                 initPose = currentPose
@@ -47,8 +50,16 @@ def moveSquare():
                     is_init_pose = False
                 else:
                     turtleVel.linear.x = turtleVelX
+                    status = "Going Forward: " + str(dist)
         else:
-            angleDiff = np.abs(currentPose[2] - initPose[2])
+            if(currentPose[2] < 0):
+                currentPose[2] = (np.pi*2) - np.abs(currentPose[2])
+            if(initPose[2] < 0):
+                initPose[2] = (np.pi*2) - np.abs(initPose[2])
+                
+            angleDiff = np.abs((currentPose[2]) - (initPose[2]))
+            status = "Turning: " + str((angleDiff*180)/np.pi) + " degree"
+
             if angleDiff >= angleRadius:
                 turtleVel.angular.z = 0
                 turnCCW = False
@@ -57,7 +68,6 @@ def moveSquare():
 
         velocity_publisher.publish(turtleVel)
 
-        status = "current: " + str(currentPose) + "action: " + str(turnCCW)
         rospy.loginfo(status)
         rate.sleep()
 
